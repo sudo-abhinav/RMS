@@ -47,3 +47,51 @@ func Createuser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func LoginUser(w http.ResponseWriter, r *http.Request) {
+	var body models.LoginRequest
+
+	if parseErr := utils.ParseBody(r.Body, &body); parseErr != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, parseErr, "failed to parse request body")
+		return
+	}
+
+	userID, role, userErr := dbHelper.Login(body)
+	if userErr != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, userErr, "failed to find user")
+		return
+	}
+
+	if userID == "" || role == "" {
+		utils.RespondWithError(w, http.StatusOK, nil, "user not found")
+		return
+	}
+
+	sessionID, Err := dbHelper.CreateUserSession(userID)
+	if Err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, Err, "failed to create user session")
+		return
+	}
+
+	token, genErr := utils.GenerateJWT(userID, sessionID, role)
+	if genErr != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, genErr, "failed to generate token")
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, struct {
+		Message string `json:"message"`
+		Token   string `json:"token"`
+	}{"login successful", token})
+}
+
+func GetAllUsersByAdmin(w http.ResponseWriter, _ *http.Request) {
+	users, Err := dbHelper.GetAllUser()
+
+	if Err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, Err, "failed to get users")
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, users)
+}

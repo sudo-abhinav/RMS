@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/sirupsen/logrus"
+	"github.com/sudo-abhinav/rms/models"
 	"golang.org/x/crypto/bcrypt"
 	"io"
 	"net/http"
@@ -63,11 +64,11 @@ func VerifyPassword(password, hash string) error {
 }
 
 // GenerateJWT creates a new JWT token with claims
-func GenerateJWT(userID, email, sessionID string) (string, error) {
+func GenerateJWT(userID, sessionID string, role models.Role) (string, error) {
 	claims := jwt.MapClaims{
 		"userID":    userID,
-		"email":     email,
 		"sessionID": sessionID,
+		"role":      role,
 		"iat":       time.Now().Unix(),
 		"exp":       time.Now().Add(time.Hour * 3).Unix(),
 	}

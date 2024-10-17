@@ -18,7 +18,7 @@ func CreateUser(tx *sqlx.Tx, name, email, password, createdBy string, role model
 }
 func CreateUserAddress(tx *sqlx.Tx, userID string, addresses []models.AddressRequest) error {
 	query := `INSERT INTO address (user_id, address, latitude, longitude) VALUES`
-	
+
 	data := make([]interface{}, 0)
 	for i := range addresses {
 		data = append(data,
@@ -31,6 +31,32 @@ func CreateUserAddress(tx *sqlx.Tx, userID string, addresses []models.AddressReq
 	utils.SetupBindVars(query, " (? , ? , ? ,?)", len(addresses))
 	_, err := tx.Exec(query, data...)
 	return err
+}
+
+func GetAllUser() ([]models.User, error) {
+	usersQuery := `SELECT id, name, email, role FROM users WHERE archived_at IS NULL ORDER BY id`
+	// it creates a slice of models.User with an initial length of 0.
+	users := make([]models.User, 0)
+	err := database.DBconn.Select(&users, usersQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	addressesQuery := `SELECT user_id, id, address, latitude, longitude FROM address WHERE user_id IN (SELECT id FROM users WHERE archived_at IS NULL)`
+	addresses := make([]models.Address, 0)
+	err = database.DBconn.Select(&addresses, addressesQuery)
+	if err != nil {
+		return nil, err
+	}
+	addressMap := make(map[string][]models.Address)
+	for _, address := range addresses {
+		addressMap[address.UserId] = append(addressMap[address.UserId], address)
+	}
+	for i := range users {
+		users[i].Address = addressMap[users[i].ID]
+	}
+
+	return users, nil
 }
 
 func GetArchivedAt(sessionID string) (*time.Time, error) {
@@ -53,4 +79,34 @@ func IsUserExists(email string) (bool, error) {
 	var checkUser bool
 	err := database.DBconn.Get(&checkUser, Query, email)
 	return checkUser, err
+}
+
+func Login(body models.LoginRequest) (string, models.Role, error) {
+	SQL := `SELECT u.id,
+       			   u.role,
+       			   u.password
+			  FROM users u
+			  WHERE u.email = TRIM($1)
+			    AND u.archived_at IS NULL`
+
+	var user models.LoginData
+	if getErr := database.DBconn.Get(&user, SQL, body.Email); getErr != nil {
+		return "", "", getErr
+	}
+	if passwordErr := utils.VerifyPassword(body.Password, user.PasswordHash); passwordErr != nil {
+		return "", "", passwordErr
+	}
+	return user.ID, user.Role, nil
+}
+
+func CreateUserSession(userID string) (string, error) {
+	var sessionID string
+	query := `INSERT INTO user_session(user_id)
+    			VALUES ($1) RETURNING id `
+
+	Err := database.DBconn.Get(&sessionID, query, userID)
+	if Err != nil {
+		return "", Err
+	}
+	return sessionID, nil
 }
