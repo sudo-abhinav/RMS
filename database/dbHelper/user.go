@@ -13,8 +13,8 @@ func CreateUser(tx *sqlx.Tx, name, email, password, createdBy string, role model
 			  VALUES (TRIM($1), TRIM($2), $3, $4, $5) RETURNING id`
 
 	var userID string
-	crtErr := tx.Get(&userID, SQL, name, email, password, createdBy, role)
-	return userID, crtErr
+	Err := tx.Get(&userID, SQL, name, email, password, createdBy, role)
+	return userID, Err
 }
 func CreateUserAddress(tx *sqlx.Tx, userID string, addresses []models.AddressRequest) error {
 	query := `INSERT INTO address (user_id, address, latitude, longitude) VALUES`
@@ -28,7 +28,7 @@ func CreateUserAddress(tx *sqlx.Tx, userID string, addresses []models.AddressReq
 			addresses[i].Longitude,
 		)
 	}
-	utils.SetupBindVars(query, " (? , ? , ? ,?)", len(addresses))
+	query = utils.SetupBindVars(query, "(? , ? , ? , ? )", len(addresses))
 	_, err := tx.Exec(query, data...)
 	return err
 }
@@ -42,7 +42,10 @@ func GetAllUser() ([]models.User, error) {
 		return nil, err
 	}
 
-	addressesQuery := `SELECT user_id, id, address, latitude, longitude FROM address WHERE user_id IN (SELECT id FROM users WHERE archived_at IS NULL)`
+	addressesQuery := `SELECT user_id, id, address, latitude, longitude FROM address 
+                                                 WHERE user_id IN 
+                                                       (SELECT id FROM users
+                                                                  WHERE archived_at IS NULL)`
 	addresses := make([]models.Address, 0)
 	err = database.DBconn.Select(&addresses, addressesQuery)
 	if err != nil {
@@ -109,4 +112,15 @@ func CreateUserSession(userID string) (string, error) {
 		return "", Err
 	}
 	return sessionID, nil
+}
+
+func DeleteUserSession(sessionID string) error {
+
+	query := `UPDATE user_session SET 
+                        archived_at = now() 
+                    where user_id = $1 AND 
+                          archived_at is NULL`
+
+	_, err := database.DBconn.Exec(query, sessionID)
+	return err
 }

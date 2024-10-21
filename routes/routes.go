@@ -7,7 +7,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sudo-abhinav/rms/handler"
 	"github.com/sudo-abhinav/rms/middlwares"
-	"github.com/sudo-abhinav/rms/models"
+	"github.com/sudo-abhinav/rms/routes/admin"
+	sub_admin "github.com/sudo-abhinav/rms/routes/sub-admin"
+	"github.com/sudo-abhinav/rms/routes/users"
 	"net/http"
 	"time"
 )
@@ -30,21 +32,26 @@ func SetupRoutes() *Server {
 
 		r.Post("/login", handler.LoginUser)
 
-		router.Group(func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+
 			r.Use(middlewares.Authenticate)
+			r.Use(middleware.Logger)
 
-			//r.Get("/dishes-by-restaurant", handler.DishesByRestaurant)
-			//r.Post("/logout", handler.LogoutUser)
+			/* TODO error in this route
+			check how to handle data
+			*/
+			r.Get("/restaurantDishes", handler.DishesByRestaurant)
 
-			r.Route("/admin", func(admin chi.Router) {
-				r.Use(middlewares.ShouldHaveRole(models.RoleAdmin))
+			r.Post("/logout", handler.LogoutUser)
 
-				admin.Post("/create-user", handler.Createuser)
-				admin.Get("/all-users", handler.GetAllUsersByAdmin)
+			//Admin route
+			admin.AdminRoutes(r)
+			// Sub-admin routes
+			sub_admin.SubAdminRoutes(r)
+			//	user route
+			/*TODO = not completed yet */
+			users.UsersRoutes(r)
 
-				admin.Post("/create-SubAdmin", handler.CreateSubAdmin)
-				admin.Get("/all-subAdmin", handler.SeeAllSUbAdmin)
-			})
 		})
 	})
 

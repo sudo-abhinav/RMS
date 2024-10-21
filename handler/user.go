@@ -7,6 +7,7 @@ import (
 	"github.com/sudo-abhinav/rms/middlwares"
 	"github.com/sudo-abhinav/rms/models"
 	"github.com/sudo-abhinav/rms/utils"
+	"log"
 	"net/http"
 )
 
@@ -34,6 +35,7 @@ func Createuser(w http.ResponseWriter, r *http.Request) {
 	password, err := utils.HashPassword(body.Password)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err, "error in hasing Password")
+		return
 	}
 
 	if txErr := database.Tx(func(tx *sqlx.Tx) error {
@@ -41,11 +43,13 @@ func Createuser(w http.ResponseWriter, r *http.Request) {
 		if saveErr != nil {
 			return saveErr
 		}
+		log.Printf("Inserting addresses for userID %s: %+v", userId, body.Address)
 		return dbHelper.CreateUserAddress(tx, userId, body.Address)
 	}); txErr != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, txErr, "failed to create user")
 		return
 	}
+	utils.RespondJSON(w, http.StatusCreated, "User Created...")
 }
 
 func LoginUser(w http.ResponseWriter, r *http.Request) {
@@ -95,3 +99,34 @@ func GetAllUsersByAdmin(w http.ResponseWriter, _ *http.Request) {
 
 	utils.RespondJSON(w, http.StatusOK, users)
 }
+
+func LogoutUser(w http.ResponseWriter, r *http.Request) {
+	userCtx := middlewares.UserContext(r)
+	sessionID := userCtx.SessionID
+
+	if Err := dbHelper.DeleteUserSession(sessionID); Err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, Err, "failed to delete user session")
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, struct {
+		Message string `json:"message"`
+	}{"logout successful"})
+}
+
+func FetchUsersBySubAdmin(w http.ResponseWriter, r *http.Request) {
+	userCTX := middlewares.UserContext(r)
+	createdBy := userCTX.UserID
+	users, Err := dbHelper.FetchUserFilterBySubAdmin(createdBy)
+
+	if Err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, Err, "failed to get users")
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, users)
+}
+
+//func CalculateDistanceUserToRestaurant() {
+//
+//}

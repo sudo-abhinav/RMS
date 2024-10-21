@@ -17,10 +17,10 @@ type UsersRequest struct {
 }
 
 type AddressRequest struct {
-	ID        string `json:"id"`
-	Address   string
-	Latitude  string
-	Longitude string
+	ID        string  `json:"id"`
+	Address   string  `json:"address"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 type User struct {
@@ -31,11 +31,11 @@ type User struct {
 	Role    Role      `json:"role" db:"role"`
 }
 type Address struct {
-	ID        string  `json:"ID" db:"id"`
-	Address   string  `json:"Address" db:"address"`
-	Latitude  float64 `json:"Latitude" db:"latitude"`
-	Longitude float64 `json:"Longitude" db:"longitude"`
-	UserId    string  `json:"UserId" db:"user_id"`
+	ID        string  `json:"id" db:"id"`
+	Address   string  `json:"address" db:"address"`
+	Latitude  float64 `json:"latitude" db:"latitude"`
+	Longitude float64 `json:"longitude" db:"longitude"`
+	UserId    string  `json:"userId" db:"user_id"`
 }
 
 type LoginRequest struct {
@@ -56,4 +56,8 @@ type UserCtx struct {
 	UserID    string `json:"userId"`
 	SessionID string `json:"sessionId"`
 	Role      Role   `json:"role"`
+}
+type Coordinates struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
