@@ -14,7 +14,7 @@ func UsersRoutes(r chi.Router) {
 		user.Get("/allRestaurant", handler.GetAllRestaurant)
 		user.Get("/allDishes", handler.GetAllDish)
 
-		//user.Get("/calculate-Distance", handler.CalculateDistanceUserToRestaurant)
+		user.Get("/calculate-Distance", handler.CalculateDistance)
 
 	})
 }

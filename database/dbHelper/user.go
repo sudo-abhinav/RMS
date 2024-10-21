@@ -124,3 +124,43 @@ func DeleteUserSession(sessionID string) error {
 	_, err := database.DBconn.Exec(query, sessionID)
 	return err
 }
+
+func GetUserCoordinates(userID string) (models.Coordinates, error) {
+	query := `select longitude , 
+       				  latitude
+								from address where id  = $1 
+								               and archived_at IS NULL`
+
+	var coordinates models.Coordinates
+	err := database.DBconn.Get(&coordinates, query, userID)
+	return coordinates, err
+
+}
+
+func GetRestaurantCoordinates(restaurantID string) (models.Coordinates, error) {
+	query := `select longitude , 
+       				  latitude
+								from restaurants where id  = $1 
+								               and archived_at IS NULL`
+
+	var coordinates models.Coordinates
+	err := database.DBconn.Get(&coordinates, query, restaurantID)
+	return coordinates, err
+
+}
+
+func CalculateDistance(userCoordinates, restaurantCoordinates models.Coordinates) (float64, error) {
+	args := []interface{}{userCoordinates.Latitude, userCoordinates.Longitude,
+		restaurantCoordinates.Latitude, restaurantCoordinates.Longitude}
+
+	SQL := `SELECT ROUND(
+						   (earth_distance(
+									ll_to_earth($1, $2),
+									ll_to_earth($3, $4)
+							) / 1000.0)::numeric, 1
+				   ) AS distance_km`
+
+	var distance float64
+	getErr := database.DBconn.Get(&distance, SQL, args...)
+	return distance, getErr
+}

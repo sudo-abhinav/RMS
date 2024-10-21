@@ -7,6 +7,7 @@ import (
 	"github.com/sudo-abhinav/rms/middlwares"
 	"github.com/sudo-abhinav/rms/models"
 	"github.com/sudo-abhinav/rms/utils"
+	"golang.org/x/sync/errgroup"
 	"log"
 	"net/http"
 )
@@ -127,6 +128,41 @@ func FetchUsersBySubAdmin(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusOK, users)
 }
 
-//func CalculateDistanceUserToRestaurant() {
-//
-//}
+func CalculateDistance(w http.ResponseWriter, r *http.Request) {
+	var body models.DistanceRequest
+
+	if parseErr := utils.ParseBody(r.Body, &body); parseErr != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, parseErr, "failed to parse request body")
+		return
+	}
+	if body.RestaurantAddressID == " " && body.UserAddressID == " " {
+		utils.RespondJSON(w, http.StatusBadRequest, "Blank Data should not Accepted...")
+		return
+	}
+	var eg errgroup.Group
+	var err error
+	var userCoordinates, restaurantCoordinates models.Coordinates
+
+	eg.Go(func() error {
+		userCoordinates, err = dbHelper.GetUserCoordinates(body.UserAddressID)
+		return err
+	})
+	eg.Go(func() error {
+		restaurantCoordinates, err = dbHelper.GetRestaurantCoordinates(body.RestaurantAddressID)
+		return err
+	})
+
+	ergErr := eg.Wait()
+	if ergErr != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, ergErr, "failed to get coordinates")
+		return
+	}
+
+	distance, calErr := dbHelper.CalculateDistance(userCoordinates, restaurantCoordinates)
+	if calErr != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, calErr, "failed to calculate distance")
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, distance)
+}
