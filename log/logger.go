@@ -7,6 +7,7 @@ import (
 
 var Logger *loggerStruct
 
+// learning go loger
 type loggerStruct struct {
 	*logrus.Logger
 }
