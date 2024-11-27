@@ -4,7 +4,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/sudo-abhinav/rms/database"
 	"github.com/sudo-abhinav/rms/database/dbHelper"
-	"github.com/sudo-abhinav/rms/middlwares"
+	_ "github.com/sudo-abhinav/rms/middlwares"
+	middlewares "github.com/sudo-abhinav/rms/middlwares"
 	"github.com/sudo-abhinav/rms/models"
 	"github.com/sudo-abhinav/rms/utils"
 	"golang.org/x/sync/errgroup"
@@ -44,6 +45,7 @@ func Createuser(w http.ResponseWriter, r *http.Request) {
 		if saveErr != nil {
 			return saveErr
 		}
+		//TODO :-  add logger
 		log.Printf("Inserting addresses for userID %s: %+v", userId, body.Address)
 		return dbHelper.CreateUserAddress(tx, userId, body.Address)
 	}); txErr != nil {
@@ -94,6 +96,7 @@ func GetAllUsersByAdmin(w http.ResponseWriter, _ *http.Request) {
 	users, Err := dbHelper.GetAllUser()
 
 	if Err != nil {
+
 		utils.RespondWithError(w, http.StatusInternalServerError, Err, "failed to get users")
 		return
 	}
