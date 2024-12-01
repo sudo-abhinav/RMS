@@ -21,7 +21,8 @@ type Server struct {
 
 func SetupRoutes() *Server {
 	router := chi.NewRouter()
-
+	commonMiddlewares := middlewares.CommonMiddlewares()
+	router.Use(commonMiddlewares...)
 	router.Route("/test", func(r chi.Router) {
 		r.Use(middleware.Logger)
 		r.Get("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
